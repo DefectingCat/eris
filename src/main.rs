@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{
     fs::{self, File},
     io,
-    path::Path,
+    path::{Path, PathBuf},
 };
 use zip::ZipArchive;
 
@@ -15,7 +15,11 @@ fn main() -> Result<()> {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
+            Some(path) => {
+                let mut p = PathBuf::from("./test");
+                p.push(path);
+                p
+            }
             None => continue,
         };
 
