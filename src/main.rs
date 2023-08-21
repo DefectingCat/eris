@@ -1,10 +1,6 @@
 use anyhow::Result;
-use std::{
-    fs::{self, File},
-    io,
-    path::{Path, PathBuf},
-};
-use zip::ZipArchive;
+use std::path::PathBuf;
+
 use ziper::Ziper;
 
 mod ziper;
@@ -12,7 +8,7 @@ mod ziper;
 fn main() -> Result<()> {
     let path = PathBuf::from("./test/test.zip");
     let mut ziper = Ziper::new(&path)?;
-    ziper.unzip()?;
+    ziper.unzip(Some("./test"))?;
 
     Ok(())
 }

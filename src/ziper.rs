@@ -20,12 +20,16 @@ impl Ziper {
         })
     }
 
-    pub fn unzip(&mut self) -> Result<()> {
+    pub fn unzip(&mut self, prefix: Option<&str>) -> Result<()> {
         for i in 0..self.archive.len() {
             let mut file = self.archive.by_index(i)?;
             let outpath = match file.enclosed_name() {
                 Some(path) => {
-                    let mut p = PathBuf::from("./test");
+                    let mut p = if let Some(prefix) = prefix {
+                        PathBuf::from(prefix)
+                    } else {
+                        PathBuf::new()
+                    };
                     p.push(path);
                     p
                 }
