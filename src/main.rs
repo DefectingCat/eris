@@ -1,4 +1,5 @@
 use anyhow::Result;
+use consts::RESET_CSS;
 use scraper::{Html, Selector};
 use std::{
     fs::{self, File},
@@ -8,6 +9,7 @@ use std::{
 
 use ziper::Ziper;
 
+mod consts;
 mod gegenees;
 mod ziper;
 
@@ -40,7 +42,7 @@ fn main() -> Result<()> {
         p
     };
     let style_file = fs::read_to_string(style_path)?;
-    let styles = format!("<style>\n{}</style>", style_file);
+    let styles = format!("<style>\n{}\n{}</style>", style_file, RESET_CSS);
     let html = format!("{}\n{}", styles, body.html());
     index_file.set_len(0)?;
     // rewrite body tag to html file
