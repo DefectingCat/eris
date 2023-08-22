@@ -26,24 +26,25 @@ fn main() -> Result<()> {
         .read(true)
         .write(true)
         .append(true)
-        .open(&index)?;
+        .open(index)?;
     let mut index = String::new();
     index_file.read_to_string(&mut index)?;
     let doc = Html::parse_document(&index);
     let body_selector = Selector::parse("body").unwrap();
     // body tag should has one
     let body = doc.select(&body_selector).next().unwrap();
-    index_file.set_len(0)?;
-    // rewrite body tag to html file
-    index_file.write_all(body.html().as_bytes())?;
 
-    let style = {
+    let style_path = {
         let mut p = prefix;
         p.push("style.css");
         p
     };
-    let _style_file = fs::read_to_string(style)?;
-    let _style = Html::new_fragment();
+    let style_file = fs::read_to_string(style_path)?;
+    let styles = format!("<style>\n{}</style>", style_file);
+    let html = format!("{}\n{}", styles, body.html());
+    index_file.set_len(0)?;
+    // rewrite body tag to html file
+    index_file.write_all(html.as_bytes())?;
 
     Ok(())
 }
