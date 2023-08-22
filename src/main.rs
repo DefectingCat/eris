@@ -36,13 +36,19 @@ fn main() -> Result<()> {
     // body tag should has one
     let body = doc.select(&body_selector).next().unwrap();
 
+    // add data attributes
+    let image_selector = Selector::parse("img").unwrap();
+    for img in body.select(&image_selector) {
+        // dbg!(&img.value());
+    }
+
     let style_path = {
         let mut p = prefix;
         p.push("style.css");
         p
     };
     let style_file = fs::read_to_string(style_path)?;
-    let styles = format!("<style>\n{}\n{}</style>", style_file, RESET_CSS);
+    let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
     let html = format!("{}\n{}", styles, body.html());
     index_file.set_len(0)?;
     // rewrite body tag to html file
