@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     ziper.unzip(Some("./test"))?;
 
     let prefix = PathBuf::from("./test");
-    let index = {
+    let index_path: PathBuf = {
         let mut p = prefix.clone();
         p.push("index.html");
         p
@@ -26,7 +26,7 @@ fn main() -> Result<()> {
         .read(true)
         .write(true)
         .append(true)
-        .open(index)?;
+        .open(&index_path)?;
     let mut index = String::new();
     index_file.read_to_string(&mut index)?;
     let doc = Html::parse_document(&index);
@@ -45,6 +45,11 @@ fn main() -> Result<()> {
     index_file.set_len(0)?;
     // rewrite body tag to html file
     index_file.write_all(html.as_bytes())?;
+
+    // rename index file
+    let mut new_name = PathBuf::from(&index_path);
+    new_name.set_file_name("template.html");
+    fs::rename(index_path, new_name)?;
 
     Ok(())
 }
