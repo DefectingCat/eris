@@ -1,5 +1,6 @@
 use anyhow::Result;
 use consts::RESET_CSS;
+
 use scraper::{Html, Selector};
 use std::{
     fs::{self, File},
@@ -37,10 +38,30 @@ fn main() -> Result<()> {
     let body = doc.select(&body_selector).next().unwrap();
 
     // add data attributes
-    let image_selector = Selector::parse("img").unwrap();
-    for img in body.select(&image_selector) {
-        // dbg!(&img.value());
-    }
+    // let image_selector = Selector::parse("img").unwrap();
+    // for img in body.select(&image_selector) {
+    //     let src = img
+    //         .value()
+    //         .attrs
+    //         .get(&QualName {
+    //             prefix: None,
+    //             ns: Namespace::from(""),
+    //             local: LocalName::from("src"),
+    //         })
+    //         .unwrap();
+    //     dbg!(&src);
+
+    //     let data_img = QualName {
+    //         prefix: None,
+    //         ns: Namespace::from(""),
+    //         local: LocalName::from("data-template"),
+    //     };
+    //     let data_v: Tendril<UTF8> = Tendril::from("test");
+
+    //     let mut new_img = img;
+    //     new_img.value().attrs.insert(data_img, data_v);
+    //     dbg!(&new_img);
+    // }
 
     let style_path = {
         let mut p = prefix;
