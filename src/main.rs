@@ -5,15 +5,18 @@ use html5ever::{
     tendril::{fmt::UTF8, Tendril},
     LocalName, Namespace, QualName,
 };
-use scraper::{Html, Selector};
+use regex::Regex;
+use scraper::{Element, Html, Selector};
 use std::{
-    env::{self, Args},
+    env::{self},
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
 };
 
 use ziper::Ziper;
+
+use crate::consts::TEXT_REG;
 
 mod consts;
 mod gegenees;
@@ -64,16 +67,50 @@ fn main() -> Result<()> {
             ns: Namespace::from(""),
             local: LocalName::from("data-title"),
         };
-
         let title_v: Tendril<UTF8> = Tendril::from("待替换");
         new_img.attrs.insert(data_title, title_v);
 
         let new_h = format!("{:?}", new_img);
-        dbg!(&new_h);
-
         let h = img.html();
         body_html = body_html.replace(&h, &new_h);
     }
+
+    // add data attributes to texts
+    let re = Regex::new(TEXT_REG).unwrap();
+    let new_body_html = body_html.clone();
+    re.find_iter(&new_body_html).for_each(|m| {
+        // m.as_str() = "<div class=\"div\">三维沉浸式场景</div>"
+        let h = m.as_str();
+        let element = Html::parse_fragment(h);
+        let value = element
+            .root_element()
+            .first_element_child()
+            .unwrap()
+            .value();
+        let mut new_text = value.clone();
+
+        let data_text = QualName {
+            prefix: None,
+            ns: Namespace::from(""),
+            local: LocalName::from("data-template"),
+        };
+        let data_v: Tendril<UTF8> = Tendril::from("text");
+        new_text.attrs.insert(data_text, data_v);
+
+        let data_title = QualName {
+            prefix: None,
+            ns: Namespace::from(""),
+            local: LocalName::from("data-title"),
+        };
+        let title_v: Tendril<UTF8> = Tendril::from("待替换");
+        new_text.attrs.insert(data_title, title_v);
+        let new_h = format!("{:?}", new_text);
+
+        let mut replace_h = String::from(h);
+        replace_h = replace_h.replace(&format!("{:?}", value), &new_h);
+
+        body_html = body_html.replace(h, &replace_h);
+    });
 
     let style_path = {
         let mut p = prefix;
