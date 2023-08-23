@@ -48,7 +48,7 @@ impl Sisyphus {
     /// Unzip target
     ///
     /// - `path` unzip to folder
-    fn unzip(&self, path: PathBuf) -> Result<()> {
+    fn unzip(&self, path: &PathBuf) -> Result<()> {
         let file_name = match path.file_name() {
             Some(name) => name.to_string_lossy(),
             None => todo!(),
@@ -65,6 +65,13 @@ impl Sisyphus {
         }
         let mut ziper = Ziper::new(&path)?;
         ziper.unzip(Some(dir_path.to_str().unwrap()))?;
+        Ok(())
+    }
+
+    pub fn process(&self) -> Result<()> {
+        for file in &self.file_list {
+            self.unzip(file)?;
+        }
         Ok(())
     }
 }
