@@ -11,4 +11,5 @@ clap = { version = "4.3.23", features = ["derive"] }
 html5ever = "0.26.0"
 regex = "1.9.3"
 scraper = "0.17.1"
+thiserror = "1.0.47"
 zip = "0.6.6"

@@ -1,26 +1,13 @@
 use anyhow::Result;
 use clap::Parser;
-use consts::RESET_CSS;
 
-use html5ever::{
-    tendril::{fmt::UTF8, Tendril},
-    LocalName, Namespace, QualName,
-};
-use regex::Regex;
-use scraper::{Element, Html, Selector};
 use sisyphus::Sisyphus;
-use std::{
-    fs::{self, File},
-    io::{Read, Write},
-    path::PathBuf,
-};
 
-use ziper::Ziper;
-
-use crate::{args::Args, consts::TEXT_REG};
+use crate::args::Args;
 
 mod args;
 mod consts;
+mod errors;
 mod sisyphus;
 mod ziper;
 

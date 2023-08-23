@@ -1,7 +1,7 @@
-use anyhow::{Ok, Result};
+use anyhow::{anyhow, Result};
 use std::{
     fs::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::ziper::Ziper;
@@ -22,20 +22,33 @@ impl Sisyphus {
     /// - `directory`: target diretory. Sisyphus will read all zip file in this directory.
     pub fn new(directory: &PathBuf) -> Result<Self> {
         let target_paths = fs::read_dir(directory)?;
-        let file_list = target_paths
-            .filter(|path| match path {
-                std::result::Result::Ok(p) => {
+        let file_list = target_paths.fold(vec![], |mut prev, path| {
+            let target = match path {
+                Ok(p) => {
                     let file_name = p.file_name();
-                    let file_type = p.file_type().unwrap();
-                    return file_type.is_file() && file_name.to_string_lossy().ends_with(".zip");
+                    let file_type = if let Ok(t) = p.file_type() {
+                        t
+                    } else {
+                        eprintln!(
+                            "Error: read file {} file type failed",
+                            file_name.to_string_lossy()
+                        );
+                        return prev;
+                    };
+                    if file_type.is_file() && file_name.to_string_lossy().ends_with(".zip") {
+                        p.path()
+                    } else {
+                        return prev;
+                    }
                 }
                 Err(err) => {
                     eprintln!("{}", err);
-                    false
+                    return prev;
                 }
-            })
-            .map(|path| path.unwrap().path())
-            .collect::<Vec<_>>();
+            };
+            prev.push(target);
+            prev
+        });
 
         let s = Self {
             directory: PathBuf::from(directory),
@@ -48,10 +61,10 @@ impl Sisyphus {
     /// Unzip target
     ///
     /// - `path` unzip to folder
-    fn unzip(&self, path: &PathBuf) -> Result<()> {
+    fn unzip(&self, path: &Path) -> Result<()> {
         let file_name = match path.file_name() {
             Some(name) => name.to_string_lossy(),
-            None => todo!(),
+            None => return Err(anyhow!("conver filename failed")),
         };
         // create same name folder
         let name = file_name.split('.');
@@ -63,7 +76,7 @@ impl Sisyphus {
         if !dir_path.exists() {
             fs::create_dir_all(&dir_path)?;
         }
-        let mut ziper = Ziper::new(&path)?;
+        let mut ziper = Ziper::new(path)?;
         ziper.unzip(Some(dir_path.to_str().unwrap()))?;
         Ok(())
     }
