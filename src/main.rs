@@ -27,13 +27,8 @@ mod ziper;
 fn main() -> Result<()> {
     let args = Args::parse();
     let target_directory = &args.directory;
-    let target_paths = fs::read_dir(target_directory)?;
-    for path in target_paths {
-        let path = path?;
-        dbg!(&path.path().display());
-    }
 
-    let sisyphus = Sisyphus::new(target_directory);
+    let _sisyphus = Sisyphus::new(target_directory);
 
     let path = PathBuf::from("./test/test.zip");
     let mut ziper = Ziper::new(&path)?;
