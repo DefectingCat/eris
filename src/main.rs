@@ -1,4 +1,5 @@
 use anyhow::Result;
+use clap::Parser;
 use consts::RESET_CSS;
 
 use html5ever::{
@@ -7,8 +8,8 @@ use html5ever::{
 };
 use regex::Regex;
 use scraper::{Element, Html, Selector};
+use sisyphus::Sisyphus;
 use std::{
-    env::{self},
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -16,15 +17,23 @@ use std::{
 
 use ziper::Ziper;
 
-use crate::consts::TEXT_REG;
+use crate::{args::Args, consts::TEXT_REG};
 
+mod args;
 mod consts;
-mod gegenees;
+mod sisyphus;
 mod ziper;
 
 fn main() -> Result<()> {
-    let args = env::args();
-    dbg!(&args);
+    let args = Args::parse();
+    let target_directory = &args.directory;
+    let target_paths = fs::read_dir(target_directory)?;
+    for path in target_paths {
+        let path = path?;
+        dbg!(&path.path().display());
+    }
+
+    let sisyphus = Sisyphus::new(target_directory);
 
     let path = PathBuf::from("./test/test.zip");
     let mut ziper = Ziper::new(&path)?;
