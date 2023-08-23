@@ -1,8 +1,13 @@
 use anyhow::Result;
 use consts::RESET_CSS;
 
+use html5ever::{
+    tendril::{fmt::UTF8, Tendril},
+    LocalName, Namespace, QualName,
+};
 use scraper::{Html, Selector};
 use std::{
+    env::{self, Args},
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -15,6 +20,9 @@ mod gegenees;
 mod ziper;
 
 fn main() -> Result<()> {
+    let args = env::args();
+    dbg!(&args);
+
     let path = PathBuf::from("./test/test.zip");
     let mut ziper = Ziper::new(&path)?;
     ziper.unzip(Some("./test"))?;
@@ -37,31 +45,35 @@ fn main() -> Result<()> {
     // body tag should has one
     let body = doc.select(&body_selector).next().unwrap();
 
-    // add data attributes
-    // let image_selector = Selector::parse("img").unwrap();
-    // for img in body.select(&image_selector) {
-    //     let src = img
-    //         .value()
-    //         .attrs
-    //         .get(&QualName {
-    //             prefix: None,
-    //             ns: Namespace::from(""),
-    //             local: LocalName::from("src"),
-    //         })
-    //         .unwrap();
-    //     dbg!(&src);
+    let mut body_html = body.html();
 
-    //     let data_img = QualName {
-    //         prefix: None,
-    //         ns: Namespace::from(""),
-    //         local: LocalName::from("data-template"),
-    //     };
-    //     let data_v: Tendril<UTF8> = Tendril::from("test");
+    // add data attributes to images
+    let image_selector = Selector::parse("img").unwrap();
+    for img in body.select(&image_selector) {
+        let mut new_img = img.value().clone();
+        let data_img = QualName {
+            prefix: None,
+            ns: Namespace::from(""),
+            local: LocalName::from("data-template"),
+        };
+        let data_v: Tendril<UTF8> = Tendril::from("img");
+        new_img.attrs.insert(data_img, data_v);
 
-    //     let mut new_img = img;
-    //     new_img.value().attrs.insert(data_img, data_v);
-    //     dbg!(&new_img);
-    // }
+        let data_title = QualName {
+            prefix: None,
+            ns: Namespace::from(""),
+            local: LocalName::from("data-title"),
+        };
+
+        let title_v: Tendril<UTF8> = Tendril::from("待替换");
+        new_img.attrs.insert(data_title, title_v);
+
+        let new_h = format!("{:?}", new_img);
+        dbg!(&new_h);
+
+        let h = img.html();
+        body_html = body_html.replace(&h, &new_h);
+    }
 
     let style_path = {
         let mut p = prefix;
@@ -70,7 +82,7 @@ fn main() -> Result<()> {
     };
     let style_file = fs::read_to_string(style_path)?;
     let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
-    let html = format!("{}\n{}", styles, body.html());
+    let html = format!("{}\n{}", styles, body_html);
     index_file.set_len(0)?;
     // rewrite body tag to html file
     index_file.write_all(html.as_bytes())?;
