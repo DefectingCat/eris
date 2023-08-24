@@ -67,17 +67,15 @@ impl Sisyphus {
             None => return Err(anyhow!("conver filename failed")),
         };
         // create same name folder
-        let name = file_name.split('.');
-        let name: Vec<&str> = name.collect::<Vec<_>>();
-        let name = name.first();
-        let name = if let Some(n) = name { n } else { "" };
+        let name = self.format_name(&file_name);
         let mut dir_path = PathBuf::from(&self.directory);
         dir_path.push(name);
         if !dir_path.exists() {
             fs::create_dir_all(&dir_path)?;
         }
         let mut ziper = Ziper::new(path)?;
-        ziper.unzip(Some(dir_path.to_str().unwrap()))?;
+        let dir_path = dir_path.to_string_lossy();
+        ziper.unzip(Some(&dir_path))?;
         Ok(())
     }
 
@@ -86,5 +84,19 @@ impl Sisyphus {
             self.unzip(file)?;
         }
         Ok(())
+    }
+
+    /// Format filename with extention
+    ///
+    /// - `file_name` target file name, such as `test.zip`
+    fn format_name<'a>(&self, file_name: &'a str) -> &'a str {
+        let name = file_name.split('.');
+        let name = name.collect::<Vec<_>>();
+        let name = name.first();
+        if let Some(n) = name {
+            n
+        } else {
+            ""
+        }
     }
 }
