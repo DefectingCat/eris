@@ -35,3 +35,9 @@ Options:
 ```bash
 cargo build --relase
 ```
+
+For windows
+
+```bash
+cargo build --target=x86_64-pc-windows-gnu --release
+```
