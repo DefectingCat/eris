@@ -97,7 +97,7 @@ impl Sisyphus {
             self.unzip(file)?;
 
             let file = file.to_string_lossy();
-            let folder_prefix = self.format_name(&file);
+            let folder_prefix = &file[..file.len() - 4];
             let index_path = {
                 let mut p = PathBuf::from(&folder_prefix);
                 p.push("index.html");
@@ -220,10 +220,15 @@ impl Sisyphus {
     /// Format filename with extention
     ///
     /// - `file_name` target file name, such as `test.zip`
-    fn format_name(&self, file_name: &str) -> String {
+    fn format_name<'a>(&self, file_name: &'a str) -> &'a str {
         let name = file_name.split('.');
         let name = name.collect::<Vec<_>>();
-        name[..name.len() - 2].join("")
+        let name = name.first();
+        if let Some(n) = name {
+            n
+        } else {
+            ""
+        }
     }
 }
 
