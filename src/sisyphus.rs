@@ -1,21 +1,18 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use ego_tree::NodeRef;
 use html5ever::{
     tendril::{fmt::UTF8, Tendril},
     LocalName, Namespace, QualName,
 };
-use regex::Regex;
-use scraper::{Element, Html, Node, Selector};
+
+use scraper::{Html, Node, Selector};
 use std::{
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
 };
 
-use crate::{
-    consts::{RESET_CSS, TEXT_REG},
-    ziper::Ziper,
-};
+use crate::{consts::RESET_CSS, ziper::Ziper};
 
 #[derive(Debug)]
 pub struct Sisyphus {
@@ -119,21 +116,8 @@ impl Sisyphus {
             for img in body.select(&image_selector) {
                 let old_img = img.value();
                 let mut new_img = old_img.clone();
-                let data_img = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-template"),
-                };
-                let data_v: Tendril<UTF8> = Tendril::from("img");
-                new_img.attrs.insert(data_img, data_v);
-
-                let data_title = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-title"),
-                };
-                let title_v: Tendril<UTF8> = Tendril::from("待替换");
-                new_img.attrs.insert(data_title, title_v);
+                add_attr(&mut new_img, "data-template", "img");
+                add_attr(&mut new_img, "data-title", "图片");
 
                 let new_h = format!("{:?}", new_img);
                 let h = format!("{:?}", old_img);
@@ -142,7 +126,9 @@ impl Sisyphus {
 
             // add data attributes to texts
             body.children().for_each(|child| {
-                self.traverse_node(&child, &mut html);
+                if let Err(err) = self.traverse_node(&child, &mut html) {
+                    eprintln!("Error parse DOM failed {err}");
+                }
             });
 
             let style_path = {
@@ -165,7 +151,7 @@ impl Sisyphus {
         Ok(())
     }
 
-    fn traverse_node(&self, target: &NodeRef<Node>, mut html: &mut String) -> Result<()> {
+    fn traverse_node(&self, target: &NodeRef<Node>, html: &mut String) -> Result<()> {
         let v = target.value();
         if v.is_text() {
             let is_vaild =
@@ -173,36 +159,26 @@ impl Sisyphus {
             if is_vaild {
                 let parent = target.parent().unwrap();
                 let text = parent.value().as_element().unwrap();
-                dbg!(&text);
                 let mut new_text = text.clone();
-                let data_text = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-template"),
-                };
-                let data_v: Tendril<UTF8> = Tendril::from("text");
-                new_text.attrs.insert(data_text, data_v);
 
-                let data_title = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-title"),
-                };
-                let title_v: Tendril<UTF8> = Tendril::from("待替换");
-                new_text.attrs.insert(data_title, title_v);
+                add_attr(&mut new_text, "data-template", "text");
+                add_attr(&mut new_text, "data-title", "标题");
 
                 let new_h = format!("{:?}", new_text);
                 let old_h = format!("{:?}", text);
                 *html = html.replace(&old_h, &new_h);
             }
         } else {
-            target.children().for_each(|child| {
-                self.traverse_node(&child, &mut html);
-            });
+            for child in target.children() {
+                self.traverse_node(&child, html)?
+            }
         }
         Ok(())
     }
 
+    /// Detect trget text is vaild text
+    ///
+    /// <div class="text-wrapper">人才发展</div>
     fn vaild_text(&self, text: &str) -> bool {
         let t = text.split('\n').collect::<Vec<_>>();
         let is_vaild = t.iter().all(|text| !text.trim().is_empty());
@@ -242,4 +218,25 @@ impl Sisyphus {
             ""
         }
     }
+}
+
+/// Build dom attributes
+///
+/// - `attr` attribute name
+/// - `value` attirbute value
+///
+/// `data-template="img"`: `attr_builder("data-template", "img");`
+fn attr_builder<'a>(attr: &'a str, value: &'a str) -> (QualName, Tendril<UTF8>) {
+    let data = QualName {
+        prefix: None,
+        ns: Namespace::from(""),
+        local: LocalName::from(attr),
+    };
+    let data_v: Tendril<UTF8> = Tendril::from(value);
+    (data, data_v)
+}
+
+fn add_attr<'a>(element: &mut scraper::node::Element, attr: &'a str, value: &'a str) {
+    let (data_img, data_v) = attr_builder(attr, value);
+    element.attrs.insert(data_img, data_v);
 }
