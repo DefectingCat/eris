@@ -34,16 +34,14 @@ impl Sisyphus {
             let target = match path {
                 Ok(p) => {
                     let file_name = p.file_name();
+                    let file_name = file_name.to_string_lossy();
                     let file_type = if let Ok(t) = p.file_type() {
                         t
                     } else {
-                        eprintln!(
-                            "Error: read file {} file type failed",
-                            file_name.to_string_lossy()
-                        );
+                        eprintln!("Error: read file {} file type failed", file_name);
                         return prev;
                     };
-                    if file_type.is_file() && file_name.to_string_lossy().ends_with(".zip") {
+                    if file_type.is_file() && file_name.ends_with(".zip") {
                         p.path()
                     } else {
                         return prev;
@@ -62,7 +60,6 @@ impl Sisyphus {
             directory: PathBuf::from(directory),
             file_list,
         };
-        dbg!(&s);
         Ok(s)
     }
 
@@ -81,6 +78,7 @@ impl Sisyphus {
         if !dir_path.exists() {
             fs::create_dir_all(&dir_path)?;
         }
+        println!("String unzip {:?}", path);
         let mut ziper = Ziper::new(path)?;
         let dir_path = dir_path.to_string_lossy();
         ziper.unzip(Some(&dir_path))?;
@@ -115,12 +113,15 @@ impl Sisyphus {
             let image_selector = Selector::parse("img").unwrap();
             for img in body.select(&image_selector) {
                 let old_img = img.value();
+                let h = format!("{:?}", old_img);
+                println!("Processing img tag {}", h);
+
                 let mut new_img = old_img.clone();
                 add_attr(&mut new_img, "data-template", "img");
                 add_attr(&mut new_img, "data-title", "图片");
 
                 let new_h = format!("{:?}", new_img);
-                let h = format!("{:?}", old_img);
+                println!("Processed img tag {}", new_h);
                 html = html.replace(&h, &new_h);
             }
 
@@ -147,6 +148,7 @@ impl Sisyphus {
             let mut new_name = PathBuf::from(&index_path);
             new_name.set_file_name("template.html");
             fs::rename(index_path, new_name)?;
+            println!("{} process done\n", file);
         }
         Ok(())
     }
@@ -159,13 +161,15 @@ impl Sisyphus {
             if is_vaild {
                 let parent = target.parent().unwrap();
                 let text = parent.value().as_element().unwrap();
-                let mut new_text = text.clone();
+                let old_h = format!("{:?}", text);
+                println!("Processing text node {}", old_h);
 
+                let mut new_text = text.clone();
                 add_attr(&mut new_text, "data-template", "text");
                 add_attr(&mut new_text, "data-title", "标题");
 
                 let new_h = format!("{:?}", new_text);
-                let old_h = format!("{:?}", text);
+                println!("Processed text node {}", new_h);
                 *html = html.replace(&old_h, &new_h);
             }
         } else {
@@ -182,9 +186,9 @@ impl Sisyphus {
     fn vaild_text(&self, text: &str) -> bool {
         let t = text.split('\n').collect::<Vec<_>>();
         let is_vaild = t.iter().all(|text| !text.trim().is_empty());
-        if is_vaild {
-            dbg!(t);
-        }
+        // if is_vaild {
+        //     println!("Process text node {}", t.join(''));
+        // }
         is_vaild
     }
 
