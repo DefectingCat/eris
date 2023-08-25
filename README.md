@@ -2,6 +2,12 @@
 
 图文模板批量处理
 
+### Install
+
+```bash
+cargo install --path .
+```
+
 ### Usage
 
 下载所有图文模板压缩包到一个目录中 `./templates`。
