@@ -7,7 +7,6 @@ use crate::args::Args;
 
 mod args;
 mod consts;
-mod errors;
 mod sisyphus;
 mod ziper;
 
