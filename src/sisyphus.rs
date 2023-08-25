@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use ego_tree::NodeRef;
 use html5ever::{
     tendril::{fmt::UTF8, Tendril},
@@ -48,7 +48,7 @@ impl Sisyphus {
                     }
                 }
                 Err(err) => {
-                    eprintln!("{}", err);
+                    eprintln!("Error: read path failed {}", err);
                     return prev;
                 }
             };
@@ -99,7 +99,7 @@ impl Sisyphus {
             let file = file.to_string_lossy();
             let folder_prefix = self.format_name(&file);
             let index_path = {
-                let mut p = PathBuf::from(folder_prefix);
+                let mut p = PathBuf::from(&folder_prefix);
                 p.push("index.html");
                 p
             };
@@ -107,7 +107,8 @@ impl Sisyphus {
                 .read(true)
                 .write(true)
                 .append(true)
-                .open(&index_path)?;
+                .open(&index_path)
+                .context(format!("Cannot open {:?}", index_path))?;
             let mut index = String::new();
             index_file.read_to_string(&mut index)?;
             let doc = Html::parse_document(&index);
@@ -219,15 +220,10 @@ impl Sisyphus {
     /// Format filename with extention
     ///
     /// - `file_name` target file name, such as `test.zip`
-    fn format_name<'a>(&self, file_name: &'a str) -> &'a str {
+    fn format_name(&self, file_name: &str) -> String {
         let name = file_name.split('.');
         let name = name.collect::<Vec<_>>();
-        let name = name.first();
-        if let Some(n) = name {
-            n
-        } else {
-            ""
-        }
+        name[..name.len() - 2].join("")
     }
 }
 
