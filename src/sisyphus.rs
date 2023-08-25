@@ -1,10 +1,11 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
+use ego_tree::NodeRef;
 use html5ever::{
     tendril::{fmt::UTF8, Tendril},
     LocalName, Namespace, QualName,
 };
 use regex::Regex;
-use scraper::{Element, Html, Selector};
+use scraper::{Element, Html, Node, Selector};
 use std::{
     fs::{self, File},
     io::{Read, Write},
@@ -116,7 +117,8 @@ impl Sisyphus {
             // add data attributes to images
             let image_selector = Selector::parse("img").unwrap();
             for img in body.select(&image_selector) {
-                let mut new_img = img.value().clone();
+                let old_img = img.value();
+                let mut new_img = old_img.clone();
                 let data_img = QualName {
                     prefix: None,
                     ns: Namespace::from(""),
@@ -134,44 +136,13 @@ impl Sisyphus {
                 new_img.attrs.insert(data_title, title_v);
 
                 let new_h = format!("{:?}", new_img);
-                let h = img.html();
+                let h = format!("{:?}", old_img);
                 html = html.replace(&h, &new_h);
             }
 
             // add data attributes to texts
-            let re = Regex::new(TEXT_REG).unwrap();
-            let new_body_html = html.clone();
-            re.find_iter(&new_body_html).for_each(|m| {
-                // m.as_str() = "<div class=\"div\">三维沉浸式场景</div>"
-                let h = m.as_str();
-                let element = Html::parse_fragment(h);
-                let value = element
-                    .root_element()
-                    .first_element_child()
-                    .unwrap()
-                    .value();
-                let mut new_text = value.clone();
-
-                let data_text = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-template"),
-                };
-                let data_v: Tendril<UTF8> = Tendril::from("text");
-                new_text.attrs.insert(data_text, data_v);
-
-                let data_title = QualName {
-                    prefix: None,
-                    ns: Namespace::from(""),
-                    local: LocalName::from("data-title"),
-                };
-                let title_v: Tendril<UTF8> = Tendril::from("待替换");
-                new_text.attrs.insert(data_title, title_v);
-                let new_h = format!("{:?}", new_text);
-
-                let mut replace_h = String::from(h);
-                replace_h = replace_h.replace(&format!("{:?}", value), &new_h);
-                html = html.replace(h, &replace_h);
+            body.children().for_each(|child| {
+                self.traverse_node(&child, &mut html);
             });
 
             let style_path = {
@@ -194,10 +165,57 @@ impl Sisyphus {
         Ok(())
     }
 
+    fn traverse_node(&self, target: &NodeRef<Node>, mut html: &mut String) -> Result<()> {
+        let v = target.value();
+        if v.is_text() {
+            let is_vaild =
+                self.vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or(String::new()));
+            if is_vaild {
+                let parent = target.parent().unwrap();
+                let text = parent.value().as_element().unwrap();
+                dbg!(&text);
+                let mut new_text = text.clone();
+                let data_text = QualName {
+                    prefix: None,
+                    ns: Namespace::from(""),
+                    local: LocalName::from("data-template"),
+                };
+                let data_v: Tendril<UTF8> = Tendril::from("text");
+                new_text.attrs.insert(data_text, data_v);
+
+                let data_title = QualName {
+                    prefix: None,
+                    ns: Namespace::from(""),
+                    local: LocalName::from("data-title"),
+                };
+                let title_v: Tendril<UTF8> = Tendril::from("待替换");
+                new_text.attrs.insert(data_title, title_v);
+
+                let new_h = format!("{:?}", new_text);
+                let old_h = format!("{:?}", text);
+                *html = html.replace(&old_h, &new_h);
+            }
+        } else {
+            target.children().for_each(|child| {
+                self.traverse_node(&child, &mut html);
+            });
+        }
+        Ok(())
+    }
+
+    fn vaild_text(&self, text: &str) -> bool {
+        let t = text.split('\n').collect::<Vec<_>>();
+        let is_vaild = t.iter().all(|text| !text.trim().is_empty());
+        if is_vaild {
+            dbg!(t);
+        }
+        is_vaild
+    }
+
     /// Parse index html file to string
     ///
     /// - `path`: &Path document path
-    fn parse_html(&self, path: &Path) -> Result<Html> {
+    fn _parse_html(&self, path: &Path) -> Result<Html> {
         let mut index_file = File::options()
             .read(true)
             .write(true)
