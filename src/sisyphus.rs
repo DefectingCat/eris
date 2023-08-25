@@ -56,6 +56,13 @@ impl Sisyphus {
             prev
         });
 
+        if file_list.is_empty() {
+            println!("No zip file found in {:?}", directory);
+        } else {
+            let len = file_list.len();
+            println!("Found {} files", len);
+        }
+
         let s = Self {
             directory: PathBuf::from(directory),
             file_list,
