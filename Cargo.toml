@@ -12,6 +12,7 @@ ego-tree = "0.6.2"
 html5ever = "0.26.0"
 regex = "1.9.3"
 scraper = "0.17.1"
+thiserror = "1.0.47"
 walkdir = "2.3.3"
 zip = "0.6.6"
 

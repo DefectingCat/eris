@@ -7,7 +7,7 @@ use html5ever::{
 
 use scraper::{Html, Node, Selector};
 use std::{
-    fs::{self, File},
+    fs::{self, DirEntry, File},
     io::{Read, Write},
     path::{Path, PathBuf},
 };
@@ -16,6 +16,7 @@ use walkdir::WalkDir;
 use crate::{
     args::Mode,
     consts::{METHOD_STORED, RESET_CSS},
+    errors::{ErisError, ErisResult},
     ziper::Ziper,
 };
 
@@ -44,21 +45,16 @@ impl Sisyphus {
         let target_paths = fs::read_dir(directory)?;
         let file_list = target_paths.fold(vec![], |mut prev, path| {
             let target = match path {
-                Ok(p) => {
-                    let file_name = p.file_name();
-                    let file_name = file_name.to_string_lossy();
-                    let file_type = if let Ok(t) = p.file_type() {
-                        t
-                    } else {
-                        eprintln!("Error: read file {} file type failed", file_name);
-                        return prev;
-                    };
-                    if file_type.is_file() && file_name.ends_with(".zip") {
-                        p.path()
-                    } else {
-                        return prev;
-                    }
-                }
+                Ok(p) => match format_path(p, mode == Mode::Format) {
+                    Ok(path) => path,
+                    Err(err) => match err {
+                        ErisError::Empty(_) => return prev,
+                        ErisError::Other(err) => {
+                            eprintln!("{}", err);
+                            return prev;
+                        }
+                    },
+                },
                 Err(err) => {
                     eprintln!("Error: read path failed {}", err);
                     return prev;
@@ -67,6 +63,7 @@ impl Sisyphus {
             prev.push(target);
             prev
         });
+        dbg!(&file_list);
 
         if file_list.is_empty() {
             println!("No zip file found in {:?}", directory);
@@ -343,4 +340,32 @@ fn traverse_node(target: &NodeRef<Node>, html: &mut String) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Format path in user input directory.
+///
+/// When `use_file = false` will not return folder that's name equal to `output`.
+///
+/// - `path` target path in user input directory
+/// - `use_file` if true, will only format zip files, otherwise only format folders.
+fn format_path(path: DirEntry, use_file: bool) -> ErisResult<PathBuf> {
+    let file_name = path.file_name();
+    let file_name = file_name.to_string_lossy();
+    let file_type = path
+        .file_type()
+        .map_err(|err| anyhow!("Error: read file {} file type failed {}", file_name, err))?;
+
+    if use_file && file_type.is_file() && file_name.ends_with(".zip") {
+        Ok(path.path())
+    } else if !use_file && file_type.is_dir() {
+        let path = path.path();
+        let dir_name = path.iter().last().ok_or(anyhow!(""))?;
+        if dir_name == "output" {
+            Err(ErisError::Empty(String::new()))
+        } else {
+            Ok(path)
+        }
+    } else {
+        Err(ErisError::Empty(String::new()))
+    }
 }
