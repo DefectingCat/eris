@@ -13,7 +13,11 @@ use std::{
 };
 use walkdir::WalkDir;
 
-use crate::{args::Mode, consts::RESET_CSS, ziper::Ziper};
+use crate::{
+    args::Mode,
+    consts::{METHOD_STORED, RESET_CSS},
+    ziper::Ziper,
+};
 
 #[derive(Debug)]
 pub struct Sisyphus {
@@ -96,7 +100,7 @@ impl Sisyphus {
     fn unzip(&self, path: &Path) -> Result<()> {
         let file_name = match path.file_name() {
             Some(name) => name.to_string_lossy(),
-            None => return Err(anyhow!("conver filename failed")),
+            None => return Err(anyhow!("convert filename failed")),
         };
         // create same name folder
         let name = format_name(&file_name);
@@ -108,7 +112,7 @@ impl Sisyphus {
         println!("String unzip {:?}", path);
         let dir_path = dir_path.to_string_lossy();
         let ziper = &self.ziper;
-        ziper.unzip(Some(&dir_path), &path)?;
+        ziper.unzip(Some(&dir_path), path)?;
         Ok(())
     }
 
@@ -189,15 +193,38 @@ impl Sisyphus {
 
     /// Traverse all formated directories, compress to zip files.
     fn compress_process(&self) -> Result<()> {
-        println!("{}", self.output.display());
         for path in &self.file_list {
             let mut out_path = PathBuf::from(&self.output);
             let filename = path.file_name().ok_or(anyhow!("cannot format filename"))?;
             out_path.push(filename);
 
-            let file = File::create(out_path)?;
-            let walkdir = WalkDir::new(path);
+            if !&self.output.exists() {
+                fs::create_dir_all(&self.output)?;
+            } else {
+                fs::remove_dir_all(&self.output)?;
+                fs::create_dir_all(&self.output)?;
+            }
+            let file = File::options()
+                .write(true)
+                .read(true)
+                .create_new(true)
+                .open(&out_path)
+                .with_context(|| anyhow!("open target {:?} failed", out_path))?;
+
+            let name = &filename.to_string_lossy();
+            let src_name = format_name(name);
+            let mut src_path = PathBuf::from(&self.directory);
+            src_path.push(src_name);
+            let walkdir = WalkDir::new(&src_path);
             let it = walkdir.into_iter();
+
+            let ziper = &self.ziper;
+            ziper.zip_dir(
+                &mut it.filter_map(|e| e.ok()),
+                &src_path,
+                file,
+                METHOD_STORED.ok_or(anyhow!("cannot use stored compression method"))?,
+            )?;
         }
 
         Ok(())
