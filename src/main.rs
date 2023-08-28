@@ -12,9 +12,8 @@ mod ziper;
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let target_directory = &args.directory;
 
-    let sisyphus = Sisyphus::new(target_directory)?;
+    let sisyphus = Sisyphus::new(&args.target_directory, &args.output)?;
     sisyphus.process()?;
     Ok(())
 }
