@@ -63,13 +63,13 @@ impl Sisyphus {
             prev.push(target);
             prev
         });
-        dbg!(&file_list);
 
         if file_list.is_empty() {
             println!("No zip file found in {:?}", directory);
         } else {
             let len = file_list.len();
-            println!("Found {} files", len);
+            println!("Found {} file(s): ", len);
+            file_list.iter().for_each(|f| println!("{:?}\n", f));
         }
 
         let directory = PathBuf::from(directory);
@@ -214,7 +214,6 @@ impl Sisyphus {
                 .open(&out_path)
                 .with_context(|| anyhow!("open target {:?} failed", out_path))?;
 
-            // let src_name = format_name(name);
             let mut src_path = PathBuf::from(&self.directory);
             src_path.push(&*path_name);
             let walkdir = WalkDir::new(&src_path);
