@@ -19,7 +19,7 @@ pub struct Args {
     /// Target directory
     #[arg(short, long, default_value = ".")]
     pub directory: PathBuf,
-    /// Compress output directory
-    #[arg(short, long, default_value = "./output")]
-    pub output: PathBuf,
+    /// Compress output directory. default 'directory'/output
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
 }
