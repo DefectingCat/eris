@@ -12,12 +12,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{consts::RESET_CSS, ziper::Ziper};
+use crate::{args::Mode, consts::RESET_CSS, ziper::Ziper};
 
 #[derive(Debug)]
 pub struct Sisyphus {
     /// Target directory
     pub directory: PathBuf,
+    /// Output directory
+    pub output: PathBuf,
+    /// Format all files or compress formated files
+    mode: Mode,
     // Target zip files
     file_list: Vec<PathBuf>,
 }
@@ -29,7 +33,7 @@ impl Sisyphus {
     ///
     /// - `directory`: target diretory. Sisyphus will read all zip file in this directory.
     /// - `output`: compress file output directory.
-    pub fn new(directory: &PathBuf, output: &PathBuf) -> Result<Self> {
+    pub fn new(mode: Mode, directory: &PathBuf, output: &PathBuf) -> Result<Self> {
         let target_paths = fs::read_dir(directory)?;
         let file_list = target_paths.fold(vec![], |mut prev, path| {
             let target = match path {
@@ -66,6 +70,8 @@ impl Sisyphus {
 
         let s = Self {
             directory: PathBuf::from(directory),
+            output: PathBuf::from(output),
+            mode,
             file_list,
         };
         Ok(s)
