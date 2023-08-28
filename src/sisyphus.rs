@@ -28,7 +28,8 @@ impl Sisyphus {
     /// Create new Sisyphus struct.
     ///
     /// - `directory`: target diretory. Sisyphus will read all zip file in this directory.
-    pub fn new(directory: &PathBuf) -> Result<Self> {
+    /// - `output`: compress file output directory.
+    pub fn new(directory: &PathBuf, output: &PathBuf) -> Result<Self> {
         let target_paths = fs::read_dir(directory)?;
         let file_list = target_paths.fold(vec![], |mut prev, path| {
             let target = match path {
