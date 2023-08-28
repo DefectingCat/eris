@@ -99,7 +99,8 @@ impl Sisyphus {
         Ok(())
     }
 
-    pub fn process(&self) -> Result<()> {
+    /// Unzip all target zip files, and format target templates.
+    fn format_process(&self) -> Result<()> {
         for file in &self.file_list {
             self.unzip(file)?;
 
@@ -173,6 +174,19 @@ impl Sisyphus {
         Ok(())
     }
 
+    /// Traverse all formated directories, compress to zip files.
+    fn compress_process(&self) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn process(&self) -> Result<()> {
+        match self.mode {
+            Mode::Format => self.format_process()?,
+            Mode::Compress => self.compress_process()?,
+        }
+        Ok(())
+    }
+
     /// Parse index html file to string
     ///
     /// - `path`: &Path document path
@@ -205,6 +219,13 @@ fn attr_builder<'a>(attr: &'a str, value: &'a str) -> (QualName, Tendril<UTF8>) 
     (data, data_v)
 }
 
+/// Add attributes to target element
+///
+/// - `element` target element
+/// - `attr` attribute
+/// - `value` attribute value
+///
+/// `<div data-template="img"></div>`: `add_attr(div_element, "data-template", "img");`
 fn add_attr<'a>(element: &mut scraper::node::Element, attr: &'a str, value: &'a str) {
     let (data_img, data_v) = attr_builder(attr, value);
     element.attrs.insert(data_img, data_v);
