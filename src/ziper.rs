@@ -7,17 +7,12 @@ use std::{
 use anyhow::Result;
 use zip::{write::FileOptions, ZipArchive};
 
-pub struct Ziper {
-    archive: ZipArchive<File>,
-}
+#[derive(Debug)]
+pub struct Ziper {}
 
 impl Ziper {
-    pub fn new(path: &Path) -> Result<Self> {
-        let file = File::open(path)?;
-
-        Ok(Self {
-            archive: ZipArchive::new(file)?,
-        })
+    pub fn new() -> Self {
+        Self {}
     }
 
     pub fn zip_dir<T>(
@@ -62,9 +57,12 @@ impl Ziper {
         Ok(())
     }
 
-    pub fn unzip(&mut self, prefix: Option<&str>) -> Result<()> {
-        for i in 0..self.archive.len() {
-            let mut file = self.archive.by_index(i)?;
+    pub fn unzip(&self, prefix: Option<&str>, path: &Path) -> Result<()> {
+        let file = File::open(path)?;
+        let mut archive = ZipArchive::new(file)?;
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
             let outpath = match file.enclosed_name() {
                 Some(path) => {
                     let mut p = if let Some(prefix) = prefix {
