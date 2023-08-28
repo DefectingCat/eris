@@ -79,7 +79,7 @@ impl Sisyphus {
             None => return Err(anyhow!("conver filename failed")),
         };
         // create same name folder
-        let name = self.format_name(&file_name);
+        let name = format_name(&file_name);
         let mut dir_path = PathBuf::from(&self.directory);
         dir_path.push(name);
         if !dir_path.exists() {
@@ -97,6 +97,7 @@ impl Sisyphus {
             self.unzip(file)?;
 
             let file = file.to_string_lossy();
+            // remove `.zip` str
             let folder_prefix = &file[..file.len() - 4];
             let index_path = {
                 let mut p = PathBuf::from(&folder_prefix);
@@ -139,11 +140,10 @@ impl Sisyphus {
             }
 
             // add data attributes to texts
-            body.children().for_each(|child| {
-                if let Err(err) = self.traverse_node(&child, &mut html) {
-                    eprintln!("Error parse DOM failed {err}");
-                }
-            });
+            for child in body.children() {
+                traverse_node(&child, &mut html)
+                    .map_err(|err| anyhow!("Error parse DOM failed {err}"))?;
+            }
 
             let style_path = {
                 let mut p = PathBuf::from(folder_prefix);
@@ -166,50 +166,6 @@ impl Sisyphus {
         Ok(())
     }
 
-    fn traverse_node(&self, target: &NodeRef<Node>, html: &mut String) -> Result<()> {
-        let v = target.value();
-        if v.is_text() {
-            let is_vaild =
-                self.vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or(String::new()));
-            if is_vaild {
-                let parent = target
-                    .parent()
-                    .ok_or(anyhow!("cannot find {:?} parent", target))?;
-                let text = parent
-                    .value()
-                    .as_element()
-                    .ok_or(anyhow!("cannot parse element"))?;
-                let old_h = format!("{:?}", text);
-                println!("Processing text node {}", old_h);
-
-                let mut new_text = text.clone();
-                add_attr(&mut new_text, "data-template", "text");
-                add_attr(&mut new_text, "data-title", "标题");
-
-                let new_h = format!("{:?}", new_text);
-                println!("Processed text node {}", new_h);
-                *html = html.replace(&old_h, &new_h);
-            }
-        } else {
-            for child in target.children() {
-                self.traverse_node(&child, html)?
-            }
-        }
-        Ok(())
-    }
-
-    /// Detect trget text is vaild text
-    ///
-    /// <div class="text-wrapper">人才发展</div>
-    fn vaild_text(&self, text: &str) -> bool {
-        let t = text.split('\n').collect::<Vec<_>>();
-        let is_vaild = t.iter().any(|text| !text.trim().is_empty());
-        // if is_vaild {
-        //     println!("Process text node {}", t.join(''));
-        // }
-        is_vaild
-    }
-
     /// Parse index html file to string
     ///
     /// - `path`: &Path document path
@@ -223,20 +179,6 @@ impl Sisyphus {
         index_file.read_to_string(&mut index)?;
         let doc = Html::parse_document(&index);
         Ok(doc)
-    }
-
-    /// Format filename with extention
-    ///
-    /// - `file_name` target file name, such as `test.zip`
-    fn format_name<'a>(&self, file_name: &'a str) -> &'a str {
-        let name = file_name.split('.');
-        let name = name.collect::<Vec<_>>();
-        let name = name.first();
-        if let Some(n) = name {
-            n
-        } else {
-            ""
-        }
     }
 }
 
@@ -259,4 +201,66 @@ fn attr_builder<'a>(attr: &'a str, value: &'a str) -> (QualName, Tendril<UTF8>) 
 fn add_attr<'a>(element: &mut scraper::node::Element, attr: &'a str, value: &'a str) {
     let (data_img, data_v) = attr_builder(attr, value);
     element.attrs.insert(data_img, data_v);
+}
+
+/// Detect trget text is vaild text
+///
+/// <div class="text-wrapper">人才发展</div>
+fn vaild_text(text: &str) -> bool {
+    let t = text.split('\n').collect::<Vec<_>>();
+    let is_vaild = t.iter().any(|text| !text.trim().is_empty());
+    // if is_vaild {
+    //     println!("Process text node {}", t.join(''));
+    // }
+    is_vaild
+}
+
+/// Format filename with extention
+///
+/// - `file_name` target file name, such as `test.zip`
+fn format_name(file_name: &str) -> &str {
+    let name = file_name.split('.');
+    let name = name.collect::<Vec<_>>();
+    let name = name.first();
+    if let Some(n) = name {
+        n
+    } else {
+        ""
+    }
+}
+
+/// recursion target node to find node that's contain target text.
+/// And add attributes
+///
+/// - `target`: target node
+/// - `html`: whole mutable html string
+fn traverse_node(target: &NodeRef<Node>, html: &mut String) -> Result<()> {
+    let v = target.value();
+    if v.is_text() {
+        let is_vaild = vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or(String::new()));
+        if is_vaild {
+            let parent = target
+                .parent()
+                .ok_or(anyhow!("cannot find {:?} parent", target))?;
+            let text = parent
+                .value()
+                .as_element()
+                .ok_or(anyhow!("cannot parse element"))?;
+            let old_h = format!("{:?}", text);
+            println!("Processing text node {}", old_h);
+
+            let mut new_text = text.clone();
+            add_attr(&mut new_text, "data-template", "text");
+            add_attr(&mut new_text, "data-title", "标题");
+
+            let new_h = format!("{:?}", new_text);
+            println!("Processed text node {}", new_h);
+            *html = html.replace(&old_h, &new_h);
+        }
+    } else {
+        for child in target.children() {
+            traverse_node(&child, html)?
+        }
+    }
+    Ok(())
 }
