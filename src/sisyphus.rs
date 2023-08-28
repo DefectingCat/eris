@@ -203,10 +203,7 @@ impl Sisyphus {
     /// <div class="text-wrapper">人才发展</div>
     fn vaild_text(&self, text: &str) -> bool {
         let t = text.split('\n').collect::<Vec<_>>();
-        let is_vaild = t.iter().any(|text| {
-            dbg!(&text, &text.trim());
-            !text.trim().is_empty()
-        });
+        let is_vaild = t.iter().any(|text| !text.trim().is_empty());
         // if is_vaild {
         //     println!("Process text node {}", t.join(''));
         // }
