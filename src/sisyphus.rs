@@ -11,6 +11,7 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
 };
+use walkdir::WalkDir;
 
 use crate::{args::Mode, consts::RESET_CSS, ziper::Ziper};
 
@@ -186,6 +187,16 @@ impl Sisyphus {
     /// Traverse all formated directories, compress to zip files.
     fn compress_process(&self) -> Result<()> {
         println!("{}", self.output.display());
+        for path in &self.file_list {
+            let mut out_path = PathBuf::from(&self.output);
+            let filename = path.file_name().ok_or(anyhow!("cannot format filename"))?;
+            out_path.push(filename);
+
+            let file = File::create(out_path)?;
+            let walkdir = WalkDir::new(path);
+            let it = walkdir.into_iter();
+        }
+
         Ok(())
     }
 
