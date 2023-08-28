@@ -25,6 +25,8 @@ pub struct Sisyphus {
     mode: Mode,
     // Target zip files
     file_list: Vec<PathBuf>,
+    // Ziper
+    ziper: Ziper,
 }
 
 impl Sisyphus {
@@ -83,6 +85,7 @@ impl Sisyphus {
             output,
             mode,
             file_list,
+            ziper: Ziper::new(),
         };
         Ok(s)
     }
@@ -103,9 +106,9 @@ impl Sisyphus {
             fs::create_dir_all(&dir_path)?;
         }
         println!("String unzip {:?}", path);
-        let mut ziper = Ziper::new(path)?;
         let dir_path = dir_path.to_string_lossy();
-        ziper.unzip(Some(&dir_path))?;
+        let ziper = &self.ziper;
+        ziper.unzip(Some(&dir_path), &path)?;
         Ok(())
     }
 
