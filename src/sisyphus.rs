@@ -175,7 +175,10 @@ impl Sisyphus {
                 let parent = target
                     .parent()
                     .ok_or(anyhow!("cannot find {:?} parent", target))?;
-                let text = parent.value().as_element().ok_or(anyhow!("cannot parse element"))?;
+                let text = parent
+                    .value()
+                    .as_element()
+                    .ok_or(anyhow!("cannot parse element"))?;
                 let old_h = format!("{:?}", text);
                 println!("Processing text node {}", old_h);
 
@@ -200,7 +203,10 @@ impl Sisyphus {
     /// <div class="text-wrapper">人才发展</div>
     fn vaild_text(&self, text: &str) -> bool {
         let t = text.split('\n').collect::<Vec<_>>();
-        let is_vaild = t.iter().all(|text| !text.trim().is_empty());
+        let is_vaild = t.iter().any(|text| {
+            dbg!(&text, &text.trim());
+            !text.trim().is_empty()
+        });
         // if is_vaild {
         //     println!("Process text node {}", t.join(''));
         // }
