@@ -113,12 +113,17 @@ impl Sisyphus {
             index_file.read_to_string(&mut index)?;
             let doc = Html::parse_document(&index);
             // let doc = self.parse_html(&index_path)?;
-            let body_selector = Selector::parse("body").unwrap();
-            let body = doc.select(&body_selector).next().unwrap();
+            let body_selector =
+                Selector::parse("body").map_err(|err| anyhow!("cannot create selector {}", err))?;
+            let body = doc
+                .select(&body_selector)
+                .next()
+                .ok_or(anyhow!("select target {:?} failed", body_selector))?;
             let mut html = body.html();
 
             // add data attributes to images
-            let image_selector = Selector::parse("img").unwrap();
+            let image_selector =
+                Selector::parse("img").map_err(|err| anyhow!("cannot create selector {}", err))?;
             for img in body.select(&image_selector) {
                 let old_img = img.value();
                 let h = format!("{:?}", old_img);
@@ -167,8 +172,10 @@ impl Sisyphus {
             let is_vaild =
                 self.vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or(String::new()));
             if is_vaild {
-                let parent = target.parent().unwrap();
-                let text = parent.value().as_element().unwrap();
+                let parent = target
+                    .parent()
+                    .ok_or(anyhow!("cannot find {:?} parent", target))?;
+                let text = parent.value().as_element().ok_or(anyhow!("cannot parse element"))?;
                 let old_h = format!("{:?}", text);
                 println!("Processing text node {}", old_h);
 
@@ -212,8 +219,6 @@ impl Sisyphus {
         let mut index = String::new();
         index_file.read_to_string(&mut index)?;
         let doc = Html::parse_document(&index);
-        // body tag should has one
-        // let body = doc.select(&body_selector).next().unwrap();
         Ok(doc)
     }
 
