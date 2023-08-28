@@ -33,7 +33,7 @@ impl Sisyphus {
     ///
     /// - `directory`: target diretory. Sisyphus will read all zip file in this directory.
     /// - `output`: compress file output directory.
-    pub fn new(mode: Mode, directory: &PathBuf, output: &PathBuf) -> Result<Self> {
+    pub fn new(mode: Mode, directory: &PathBuf, output: &Option<PathBuf>) -> Result<Self> {
         let target_paths = fs::read_dir(directory)?;
         let file_list = target_paths.fold(vec![], |mut prev, path| {
             let target = match path {
@@ -68,9 +68,18 @@ impl Sisyphus {
             println!("Found {} files", len);
         }
 
+        let directory = PathBuf::from(directory);
+        let output = if let Some(o) = output {
+            PathBuf::from(o)
+        } else {
+            let mut p = PathBuf::from(&directory);
+            p.push("output");
+            p
+        };
+
         let s = Self {
-            directory: PathBuf::from(directory),
-            output: PathBuf::from(output),
+            directory,
+            output,
             mode,
             file_list,
         };
@@ -176,6 +185,7 @@ impl Sisyphus {
 
     /// Traverse all formated directories, compress to zip files.
     fn compress_process(&self) -> Result<()> {
+        println!("{}", self.output.display());
         Ok(())
     }
 
