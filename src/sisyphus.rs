@@ -199,8 +199,13 @@ impl Sisyphus {
 
         for path in &self.file_list {
             let mut out_path = PathBuf::from(&self.output);
-            let filename = path.file_name().ok_or(anyhow!("cannot format filename"))?;
-            out_path.push(filename);
+            let path_name = path
+                .iter()
+                .last()
+                .ok_or(anyhow!("cannot get folder filename"))?
+                .to_string_lossy();
+            let filename = format!("{}.zip", &path_name);
+            out_path.push(&filename);
 
             let file = File::options()
                 .write(true)
@@ -209,10 +214,9 @@ impl Sisyphus {
                 .open(&out_path)
                 .with_context(|| anyhow!("open target {:?} failed", out_path))?;
 
-            let name = &filename.to_string_lossy();
-            let src_name = format_name(name);
+            // let src_name = format_name(name);
             let mut src_path = PathBuf::from(&self.directory);
-            src_path.push(src_name);
+            src_path.push(&*path_name);
             let walkdir = WalkDir::new(&src_path);
             let it = walkdir.into_iter();
 
@@ -359,7 +363,10 @@ fn format_path(path: DirEntry, use_file: bool) -> ErisResult<PathBuf> {
         Ok(path.path())
     } else if !use_file && file_type.is_dir() {
         let path = path.path();
-        let dir_name = path.iter().last().ok_or(anyhow!(""))?;
+        let dir_name = path
+            .iter()
+            .last()
+            .ok_or(anyhow!("Error: cannot read folder name"))?;
         if dir_name == "output" {
             Err(ErisError::Empty(String::new()))
         } else {
