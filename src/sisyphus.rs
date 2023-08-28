@@ -69,8 +69,9 @@ impl Sisyphus {
         } else {
             let len = file_list.len();
             println!("Found {} file(s): ", len);
-            file_list.iter().for_each(|f| println!("{:?}\n", f));
+            file_list.iter().for_each(|f| println!("{:?}", f));
         }
+        println!();
 
         let directory = PathBuf::from(directory);
         let output = if let Some(o) = output {
@@ -206,6 +207,7 @@ impl Sisyphus {
                 .to_string_lossy();
             let filename = format!("{}.zip", &path_name);
             out_path.push(&filename);
+            println!("Starting zip {:?}", out_path);
 
             let file = File::options()
                 .write(true)
@@ -226,6 +228,7 @@ impl Sisyphus {
                 file,
                 METHOD_STORED.ok_or(anyhow!("cannot use stored compression method"))?,
             )?;
+            println!("{} compress done\n", filename);
         }
 
         Ok(())
