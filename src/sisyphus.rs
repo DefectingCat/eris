@@ -193,17 +193,18 @@ impl Sisyphus {
 
     /// Traverse all formated directories, compress to zip files.
     fn compress_process(&self) -> Result<()> {
+        if !&self.output.exists() {
+            fs::create_dir_all(&self.output)?;
+        } else {
+            fs::remove_dir_all(&self.output)?;
+            fs::create_dir_all(&self.output)?;
+        }
+
         for path in &self.file_list {
             let mut out_path = PathBuf::from(&self.output);
             let filename = path.file_name().ok_or(anyhow!("cannot format filename"))?;
             out_path.push(filename);
 
-            if !&self.output.exists() {
-                fs::create_dir_all(&self.output)?;
-            } else {
-                fs::remove_dir_all(&self.output)?;
-                fs::create_dir_all(&self.output)?;
-            }
             let file = File::options()
                 .write(true)
                 .read(true)
