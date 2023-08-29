@@ -130,7 +130,7 @@ impl Sisyphus {
             let mut index_file = File::options()
                 .read(true)
                 .write(true)
-                .append(true)
+                // .append(true)
                 .open(&index_path)
                 .context(format!("Cannot open {:?}", index_path))?;
             let mut index = String::new();
@@ -176,14 +176,28 @@ impl Sisyphus {
             let style_file = fs::read_to_string(style_path)?;
             let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
             let html = format!("{}\n{}", styles, html);
-            index_file.set_len(0)?;
+            // index_file
+            //     .set_len(0)
+            //     .with_context(|| anyhow!("cannot clean {:?} file", &index_file))?;
             // rewrite body tag to html file
-            index_file.write_all(html.as_bytes())?;
+            // index_file
+            //     .write_all(html.as_bytes())
+            //     .with_context(|| anyhow!("cannot write to file {:?}", &index_file))?;
 
-            // rename index file
+            // create new template.html
             let mut new_name = PathBuf::from(&index_path);
             new_name.set_file_name("template.html");
-            fs::rename(index_path, new_name)?;
+            if new_name.exists() {
+                fs::remove_file(&new_name)?;
+            }
+            let mut template = File::options().write(true).create(true).open(&new_name)?;
+            template
+                .write_all(html.as_bytes())
+                .with_context(|| anyhow!("cannot write to file {:?}", &template))?;
+            // delete index.html
+            fs::remove_file(&index_path)?;
+            // fs::rename(&index_path, &new_name)
+            //     .with_context(|| anyhow!("cannot rename {:?} to {:?}", index_path, new_name))?;
             println!("{} process done\n", file);
         }
         Ok(())
