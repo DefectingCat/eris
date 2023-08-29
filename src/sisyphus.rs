@@ -116,140 +116,146 @@ impl Sisyphus {
     }
 
     /// Unzip all target zip files, and format target templates.
-    fn format_process(&self) -> Result<()> {
-        for file in &self.file_list {
-            self.unzip(file)?;
+    fn format_process(&self, file: &Path) -> Result<()> {
+        self.unzip(file)?;
 
-            let file = file.to_string_lossy();
-            // remove `.zip` str
-            let folder_prefix = &file[..file.len() - 4];
-            let index_path = {
-                let mut p = PathBuf::from(&folder_prefix);
-                p.push("index.html");
-                p
-            };
-            let mut index_file = File::options()
-                .read(true)
-                .write(true)
-                // .append(true)
-                .open(&index_path)
-                .context(format!("Cannot open {:?}", index_path))?;
-            let mut index = String::new();
-            index_file.read_to_string(&mut index)?;
-            let doc = Html::parse_document(&index);
-            // let doc = self.parse_html(&index_path)?;
-            let body_selector =
-                Selector::parse("body").map_err(|err| anyhow!("cannot create selector {}", err))?;
-            let body = doc
-                .select(&body_selector)
-                .next()
-                .ok_or(anyhow!("select target {:?} failed", body_selector))?;
-            let mut html = body.html();
+        let file = file.to_string_lossy();
+        // remove `.zip` str
+        let folder_prefix = &file[..file.len() - 4];
+        let index_path = {
+            let mut p = PathBuf::from(&folder_prefix);
+            p.push("index.html");
+            p
+        };
+        let mut index_file = File::options()
+            .read(true)
+            .write(true)
+            // .append(true)
+            .open(&index_path)
+            .context(format!("Cannot open {:?}", index_path))?;
+        let mut index = String::new();
+        index_file.read_to_string(&mut index)?;
+        let doc = Html::parse_document(&index);
+        // let doc = self.parse_html(&index_path)?;
+        let body_selector =
+            Selector::parse("body").map_err(|err| anyhow!("cannot create selector {}", err))?;
+        let body = doc
+            .select(&body_selector)
+            .next()
+            .ok_or(anyhow!("select target {:?} failed", body_selector))?;
+        let mut html = body.html();
 
-            // add data attributes to images
-            let image_selector =
-                Selector::parse("img").map_err(|err| anyhow!("cannot create selector {}", err))?;
-            for img in body.select(&image_selector) {
-                let old_img = img.value();
-                let h = format!("{:?}", old_img);
-                println!("Processing img tag {}", h);
+        // add data attributes to images
+        let image_selector =
+            Selector::parse("img").map_err(|err| anyhow!("cannot create selector {}", err))?;
+        for img in body.select(&image_selector) {
+            let old_img = img.value();
+            let h = format!("{:?}", old_img);
+            println!("Processing img tag {}", h);
 
-                let mut new_img = old_img.clone();
-                add_attr(&mut new_img, "data-template", "img");
-                add_attr(&mut new_img, "data-title", "图片");
+            let mut new_img = old_img.clone();
+            add_attr(&mut new_img, "data-template", "img");
+            add_attr(&mut new_img, "data-title", "图片");
 
-                let new_h = format!("{:?}", new_img);
-                println!("Processed img tag {}", new_h);
-                html = html.replace(&h, &new_h);
-            }
-
-            // add data attributes to texts
-            for child in body.children() {
-                traverse_node(&child, &mut html)
-                    .map_err(|err| anyhow!("Error parse DOM failed {err}"))?;
-            }
-
-            let style_path = {
-                let mut p = PathBuf::from(folder_prefix);
-                p.push("style.css");
-                p
-            };
-            let style_file = fs::read_to_string(style_path)?;
-            let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
-            let html = format!("{}\n{}", styles, html);
-            // index_file
-            //     .set_len(0)
-            //     .with_context(|| anyhow!("cannot clean {:?} file", &index_file))?;
-            // rewrite body tag to html file
-            // index_file
-            //     .write_all(html.as_bytes())
-            //     .with_context(|| anyhow!("cannot write to file {:?}", &index_file))?;
-
-            // create new template.html
-            let mut new_name = PathBuf::from(&index_path);
-            new_name.set_file_name("template.html");
-            // if new_name.exists() {
-            //     fs::remove_file(&new_name)?;
-            // }
-            let mut template = File::options().write(true).create(true).open(&new_name)?;
-            template
-                .write_all(html.as_bytes())
-                .with_context(|| anyhow!("cannot write to file {:?}", &template))?;
-            // delete index.html
-            fs::remove_file(&index_path)?;
-            // fs::rename(&index_path, &new_name)
-            //     .with_context(|| anyhow!("cannot rename {:?} to {:?}", index_path, new_name))?;
-            println!("{} process done\n", file);
+            let new_h = format!("{:?}", new_img);
+            println!("Processed img tag {}", new_h);
+            html = html.replace(&h, &new_h);
         }
+
+        // add data attributes to texts
+        for child in body.children() {
+            traverse_node(&child, &mut html)
+                .map_err(|err| anyhow!("Error parse DOM failed {err}"))?;
+        }
+
+        let style_path = {
+            let mut p = PathBuf::from(folder_prefix);
+            p.push("style.css");
+            p
+        };
+        let style_file = fs::read_to_string(style_path)?;
+        let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
+        let html = format!("{}\n{}", styles, html);
+        // index_file
+        //     .set_len(0)
+        //     .with_context(|| anyhow!("cannot clean {:?} file", &index_file))?;
+        // rewrite body tag to html file
+        // index_file
+        //     .write_all(html.as_bytes())
+        //     .with_context(|| anyhow!("cannot write to file {:?}", &index_file))?;
+
+        // create new template.html
+        let mut new_name = PathBuf::from(&index_path);
+        new_name.set_file_name("template.html");
+        // if new_name.exists() {
+        //     fs::remove_file(&new_name)?;
+        // }
+        let mut template = File::options().write(true).create(true).open(&new_name)?;
+        template
+            .write_all(html.as_bytes())
+            .with_context(|| anyhow!("cannot write to file {:?}", &template))?;
+        // delete index.html
+        fs::remove_file(&index_path)?;
+        // fs::rename(&index_path, &new_name)
+        //     .with_context(|| anyhow!("cannot rename {:?} to {:?}", index_path, new_name))?;
+        println!("{} process done\n", file);
         Ok(())
     }
 
     /// Traverse all formated directories, compress to zip files.
-    fn compress_process(&self) -> Result<()> {
-        if self.output.exists() {
-            fs::remove_dir_all(&self.output)?;
-        }
-        fs::create_dir_all(&self.output)?;
-        for path in &self.file_list {
-            let mut out_path = PathBuf::from(&self.output);
-            let path_name = path
-                .iter()
-                .last()
-                .ok_or(anyhow!("cannot get folder filename"))?
-                .to_string_lossy();
-            let filename = format!("{}.zip", &path_name);
-            out_path.push(&filename);
-            println!("Starting zip {:?}", out_path);
+    fn compress_process(&self, path: &Path) -> Result<()> {
+        let mut out_path = PathBuf::from(&self.output);
+        let path_name = path
+            .iter()
+            .last()
+            .ok_or(anyhow!("cannot get folder filename"))?
+            .to_string_lossy();
+        let filename = format!("{}.zip", &path_name);
+        out_path.push(&filename);
+        println!("Starting zip {:?}", out_path);
 
-            let file = File::options()
-                .write(true)
-                .read(true)
-                .create_new(true)
-                .open(&out_path)
-                .with_context(|| anyhow!("open target {:?} failed", out_path))?;
+        let file = File::options()
+            .write(true)
+            .read(true)
+            .create_new(true)
+            .open(&out_path)
+            .with_context(|| anyhow!("open target {:?} failed", out_path))?;
 
-            let mut src_path = PathBuf::from(&self.directory);
-            src_path.push(&*path_name);
-            let walkdir = WalkDir::new(&src_path);
-            let it = walkdir.into_iter();
+        let mut src_path = PathBuf::from(&self.directory);
+        src_path.push(&*path_name);
+        let walkdir = WalkDir::new(&src_path);
+        let it = walkdir.into_iter();
 
-            let ziper = &self.ziper;
-            ziper.zip_dir(
-                &mut it.filter_map(|e| e.ok()),
-                &src_path,
-                file,
-                METHOD_STORED.ok_or(anyhow!("cannot use stored compression method"))?,
-            )?;
-            println!("{} compress done\n", filename);
-        }
+        let ziper = &self.ziper;
+        ziper.zip_dir(
+            &mut it.filter_map(|e| e.ok()),
+            &src_path,
+            file,
+            METHOD_STORED.ok_or(anyhow!("cannot use stored compression method"))?,
+        )?;
+        println!("{} compress done\n", filename);
 
         Ok(())
     }
 
     pub fn process(&self) -> Result<()> {
         match self.mode {
-            Mode::Format => self.format_process()?,
-            Mode::Compress => self.compress_process()?,
+            Mode::Format => {
+                self.file_list
+                    .iter()
+                    .map(|file| self.format_process(file))
+                    .collect::<Result<Vec<_>>>()?;
+            }
+            Mode::Compress => {
+                if self.output.exists() {
+                    fs::remove_dir_all(&self.output)?;
+                }
+                fs::create_dir_all(&self.output)?;
+                self.file_list
+                    .iter()
+                    .map(|path| self.compress_process(path))
+                    .collect::<Result<Vec<_>>>()?;
+            }
         }
         Ok(())
     }
@@ -332,7 +338,7 @@ fn format_name(file_name: &str) -> &str {
 fn traverse_node(target: &NodeRef<Node>, html: &mut String) -> Result<()> {
     let v = target.value();
     if v.is_text() {
-        let is_vaild = vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or(String::new()));
+        let is_vaild = vaild_text(&v.as_text().map(|t| t.to_string()).unwrap_or_default());
         if is_vaild {
             let parent = target
                 .parent()
