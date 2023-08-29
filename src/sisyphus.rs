@@ -104,12 +104,10 @@ impl Sisyphus {
         let name = format_name(&file_name);
         let mut dir_path = PathBuf::from(&self.directory);
         dir_path.push(name);
-        if !dir_path.exists() {
-            fs::create_dir_all(&dir_path)?;
-        } else {
+        if dir_path.exists() {
             fs::remove_dir_all(&dir_path)?;
-            fs::create_dir_all(&dir_path)?;
         }
+        fs::create_dir_all(&dir_path)?;
         println!("String unzip {:?}", path);
         let dir_path = dir_path.to_string_lossy();
         let ziper = &self.ziper;
@@ -208,13 +206,10 @@ impl Sisyphus {
 
     /// Traverse all formated directories, compress to zip files.
     fn compress_process(&self) -> Result<()> {
-        if !&self.output.exists() {
-            fs::create_dir_all(&self.output)?;
-        } else {
+        if self.output.exists() {
             fs::remove_dir_all(&self.output)?;
-            fs::create_dir_all(&self.output)?;
         }
-
+        fs::create_dir_all(&self.output)?;
         for path in &self.file_list {
             let mut out_path = PathBuf::from(&self.output);
             let path_name = path
