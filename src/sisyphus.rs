@@ -106,6 +106,9 @@ impl Sisyphus {
         dir_path.push(name);
         if !dir_path.exists() {
             fs::create_dir_all(&dir_path)?;
+        } else {
+            fs::remove_dir_all(&dir_path)?;
+            fs::create_dir_all(&dir_path)?;
         }
         println!("String unzip {:?}", path);
         let dir_path = dir_path.to_string_lossy();
@@ -187,9 +190,9 @@ impl Sisyphus {
             // create new template.html
             let mut new_name = PathBuf::from(&index_path);
             new_name.set_file_name("template.html");
-            if new_name.exists() {
-                fs::remove_file(&new_name)?;
-            }
+            // if new_name.exists() {
+            //     fs::remove_file(&new_name)?;
+            // }
             let mut template = File::options().write(true).create(true).open(&new_name)?;
             template
                 .write_all(html.as_bytes())
