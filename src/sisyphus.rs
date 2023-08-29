@@ -239,10 +239,12 @@ impl Sisyphus {
     }
 
     pub fn process(&self) -> Result<()> {
+        use rayon::prelude::*;
+
         match self.mode {
             Mode::Format => {
                 self.file_list
-                    .iter()
+                    .par_iter()
                     .map(|file| self.format_process(file))
                     .collect::<Result<Vec<_>>>()?;
             }
@@ -252,7 +254,7 @@ impl Sisyphus {
                 }
                 fs::create_dir_all(&self.output)?;
                 self.file_list
-                    .iter()
+                    .par_iter()
                     .map(|path| self.compress_process(path))
                     .collect::<Result<Vec<_>>>()?;
             }
