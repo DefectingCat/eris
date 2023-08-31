@@ -58,7 +58,7 @@ impl<'a> Sisyphus<'a> {
         // Collect file list.
         let folder = |mut prev: Vec<_>, path: std::result::Result<_, std::io::Error>| {
             let target = match path {
-                Ok(p) => match format_path(p, mode == Format) {
+                Ok(p) => match format_path(p, mode != Compress) {
                     Ok(path) => path,
                     Err(err) => match err {
                         ErisError::Empty(_) => return prev,
@@ -293,7 +293,17 @@ impl<'a> Sisyphus<'a> {
                     .map(|path| self.compress_process(path))
                     .collect::<Result<Vec<_>>>()?;
             }
-            Mode::Upload => {}
+            Mode::Upload => {
+                self.file_list
+                    .par_iter()
+                    .map(|path| {
+                        self.http
+                            .as_ref()
+                            .ok_or(anyhow!("http client initial failed"))?
+                            .upload(path)
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+            }
         }
         Ok(())
     }
