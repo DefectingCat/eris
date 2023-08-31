@@ -24,18 +24,58 @@ impl<'a> Http<'a> {
             upload_url: format!("{}admin/Apitemplategrapic/add", base_url),
         }
     }
-    pub fn upload(&self, path: &Path) -> Result<()> {
+    pub fn upload(&self, path: &Path, name_suffix: &'a Option<String>) -> Result<()> {
         // let file = fs::read(path)?;
         let filename = &path
             .file_name()
             .ok_or(anyhow!("cannot read target filename"))?
             .to_string_lossy();
-        println!("Starting upload {}", &filename);
+
+        let up_name = if filename.ends_with(".zip") {
+            filename
+                .strip_suffix(".zip")
+                .ok_or(anyhow!("strip filename failed"))?
+                .split('_')
+                .collect::<Vec<_>>()
+        } else {
+            filename.split('_').collect::<Vec<_>>()
+        };
+        let upload_name = if let Some(name) = name_suffix.as_ref() {
+            if up_name.len() < 3 {
+                eprintln!("Wraning: filename is illegal {}", &filename);
+                String::from(filename.clone())
+            } else {
+                format!("{}_{}", &name, &up_name[1])
+            }
+        } else {
+            String::from(filename.clone())
+        };
+
+        let (width, height) = if upload_name.len() > 2 {
+            let size = up_name
+                .last()
+                .ok_or(anyhow!(""))?
+                .split('X')
+                .collect::<Vec<_>>();
+
+            if size.len() != 2 {
+                ("", "")
+            } else {
+                (size[0], size[1])
+            }
+        } else {
+            ("", "")
+        };
+
+        println!(
+            "Starting upload {} as {} with width {} height {}",
+            &filename, &upload_name, &width, &height
+        );
 
         let form = multipart::Form::new()
-            .text("name", String::from(filename.clone()))
-            .text("width", "")
-            .text("height", "")
+            .text("name", upload_name.clone())
+            .text("width", String::from(width))
+            .text("height", String::from(height))
             .file("file", path)?;
 
         let res = self
@@ -49,9 +89,9 @@ impl<'a> Http<'a> {
             .with_context(|| anyhow!("parse response failed"))?;
 
         if res.code == "200" {
-            println!("Upload {} sucess", &filename);
+            println!("Upload {} succeeded", &upload_name);
         } else {
-            return Err(anyhow!("Upload {} failed, {:?}", &filename, &res));
+            return Err(anyhow!("Upload {} failed, {:?}", &upload_name, &res));
         }
 
         Ok(())

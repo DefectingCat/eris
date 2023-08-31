@@ -35,6 +35,8 @@ pub struct Sisyphus<'a> {
     ziper: Ziper,
     // Http client
     http: Option<Http<'a>>,
+    // Upload name prefix
+    upload_name: &'a Option<String>,
 }
 
 impl<'a> Sisyphus<'a> {
@@ -51,6 +53,7 @@ impl<'a> Sisyphus<'a> {
         // Upload
         base_url: &'a Option<String>,
         token: &'a Option<String>,
+        upload_name: &'a Option<String>,
     ) -> Result<Self> {
         use Mode::*;
 
@@ -123,6 +126,7 @@ impl<'a> Sisyphus<'a> {
             file_list,
             ziper: Ziper::new(),
             http,
+            upload_name,
         };
         Ok(s)
     }
@@ -300,7 +304,7 @@ impl<'a> Sisyphus<'a> {
                         self.http
                             .as_ref()
                             .ok_or(anyhow!("http client initial failed"))?
-                            .upload(path)
+                            .upload(path, self.upload_name)
                     })
                     .collect::<Result<Vec<_>>>()?;
             }

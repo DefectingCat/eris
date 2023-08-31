@@ -21,6 +21,7 @@ fn main() -> Result<()> {
         &args.output,
         &args.base_url,
         &args.token,
+        &args.upload_name,
     )?;
     sisyphus.process()?;
     Ok(())

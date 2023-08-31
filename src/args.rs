@@ -30,4 +30,7 @@ pub struct Args {
     /// Upload API token, it's required in upload mode.
     #[arg(short, long)]
     pub token: Option<String>,
+    /// Upload filename prefix. file `A002_GG42_1100X600.zip` if set name then will use name `[name]_GG42`, otherwise will use orginal name `A002_GG42_1100X600.zip` .
+    #[arg(short = 'n', long = "name")]
+    pub upload_name: Option<String>,
 }
