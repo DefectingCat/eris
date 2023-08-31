@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use clap::{command, Parser, ValueEnum};
 
-use crate::consts::BASE_URL;
-
 #[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum Mode {
     #[default]
@@ -29,4 +27,7 @@ pub struct Args {
     /// Upload API base url. default http://183.162.254.169:8086/
     #[arg(long = "url")]
     pub base_url: Option<String>,
+    /// Upload API token, it's required in upload mode.
+    #[arg(short, long)]
+    pub token: Option<String>,
 }

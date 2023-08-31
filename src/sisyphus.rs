@@ -44,11 +44,21 @@ impl<'a> Sisyphus<'a> {
     ///
     /// - `directory`: target diretory. Sisyphus will read all zip file in this directory.
     /// - `output`: compress file output directory.
-    pub fn new(mode: Mode, directory: &PathBuf, output: &Option<PathBuf>) -> Result<Self> {
-        let target_paths = fs::read_dir(directory)?;
-        let file_list = target_paths.fold(vec![], |mut prev, path| {
+    pub fn new(
+        mode: Mode,
+        directory: &PathBuf,
+        output: &Option<PathBuf>,
+        // Upload
+        base_url: &'a Option<String>,
+        token: &'a Option<String>,
+    ) -> Result<Self> {
+        use Mode::*;
+
+        // Format
+        // Collect file list.
+        let folder = |mut prev: Vec<_>, path: std::result::Result<_, std::io::Error>| {
             let target = match path {
-                Ok(p) => match format_path(p, mode == Mode::Format) {
+                Ok(p) => match format_path(p, mode == Format) {
                     Ok(path) => path,
                     Err(err) => match err {
                         ErisError::Empty(_) => return prev,
@@ -65,8 +75,27 @@ impl<'a> Sisyphus<'a> {
             };
             prev.push(target);
             prev
-        });
+        };
 
+        // Upload or compress
+        let input_path = PathBuf::from(directory);
+        let output = if let Some(o) = output {
+            PathBuf::from(o)
+        } else {
+            let mut p = PathBuf::from(&input_path);
+            p.push("output");
+            p
+        };
+
+        let file_list = if mode == Upload {
+            let target_paths = fs::read_dir(&output)
+                .with_context(|| anyhow!("cannot open output directory {:?}", &output))?;
+            target_paths.fold(vec![], folder)
+        } else {
+            let target_paths = fs::read_dir(directory)
+                .with_context(|| anyhow!("cannot open target directory {:?}", &directory))?;
+            target_paths.fold(vec![], folder)
+        };
         if file_list.is_empty() {
             println!("No zip file found in {:?}", directory);
         } else {
@@ -76,23 +105,19 @@ impl<'a> Sisyphus<'a> {
         }
         println!();
 
-        let directory = PathBuf::from(directory);
-        let output = if let Some(o) = output {
-            PathBuf::from(o)
-        } else {
-            let mut p = PathBuf::from(&directory);
-            p.push("output");
-            p
-        };
-
-        let http = if mode == Mode::Upload {
-            Some(Http::new(None))
+        // Upload
+        let http = if mode == Upload {
+            let token = token
+                .as_ref()
+                .ok_or(anyhow!("not specify upload token!"))?
+                .as_str();
+            Some(Http::new(base_url.as_ref().map(|s| s.as_str()), token))
         } else {
             None
         };
 
         let s = Self {
-            directory,
+            directory: input_path,
             output,
             mode,
             file_list,
@@ -268,7 +293,7 @@ impl<'a> Sisyphus<'a> {
                     .map(|path| self.compress_process(path))
                     .collect::<Result<Vec<_>>>()?;
             }
-            Mode::Upload => todo!(),
+            Mode::Upload => {}
         }
         Ok(())
     }

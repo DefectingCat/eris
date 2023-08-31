@@ -15,7 +15,13 @@ mod ziper;
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let sisyphus = Sisyphus::new(args.mode, &args.directory, &args.output)?;
+    let sisyphus = Sisyphus::new(
+        args.mode,
+        &args.directory,
+        &args.output,
+        &args.base_url,
+        &args.token,
+    )?;
     sisyphus.process()?;
     Ok(())
 }
