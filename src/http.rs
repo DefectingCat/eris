@@ -1,4 +1,8 @@
-use reqwest::Client;
+use std::path::Path;
+
+use anyhow::Result;
+use reqwest::blocking::{self, multipart};
+use serde::{Deserialize, Serialize};
 
 use crate::consts::BASE_URL;
 
@@ -6,7 +10,7 @@ use crate::consts::BASE_URL;
 pub struct Http<'a> {
     base_url: &'a str,
     token: &'a str,
-    client: Client,
+    client: blocking::Client,
 }
 impl<'a> Http<'a> {
     pub fn new(base_url: Option<&'a str>, token: &'a str) -> Self {
@@ -15,7 +19,33 @@ impl<'a> Http<'a> {
         Self {
             base_url,
             token,
-            client: Client::new(),
+            client: blocking::Client::new(),
         }
     }
+    pub fn upload(&self, path: &Path) -> Result<()> {
+        // let file = fs::read(path)?;
+        let form = multipart::Form::new()
+            .text("name", "")
+            .text("width", "")
+            .text("height", "")
+            .file("file", path)?;
+
+        let res = self
+            .client
+            .post(format!("{}admin/Apitemplategrapic/add", self.base_url))
+            .header("token", self.token)
+            .multipart(form)
+            .send()?
+            .json::<ResBody>();
+
+        println!("{:?}", res);
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResBody {
+    code: String,
+    data: String,
 }
