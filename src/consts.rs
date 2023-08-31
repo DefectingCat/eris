@@ -3,3 +3,5 @@ pub static RESET_CSS: &str = r#"html,body,div,span,applet,object,iframe,h1,h2,h3
 // pub static TEXT_REG: &str = r#"<[^img|^/].*/.*>"#;
 
 pub const METHOD_STORED: Option<zip::CompressionMethod> = Some(zip::CompressionMethod::Stored);
+
+pub static BASE_URL: &str = "http://183.162.254.169:8086/";

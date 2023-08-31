@@ -17,11 +17,12 @@ use crate::{
     args::Mode,
     consts::{METHOD_STORED, RESET_CSS},
     errors::{ErisError, ErisResult},
+    http::Http,
     ziper::Ziper,
 };
 
 #[derive(Debug)]
-pub struct Sisyphus {
+pub struct Sisyphus<'a> {
     /// Target directory
     pub directory: PathBuf,
     /// Output directory
@@ -32,9 +33,11 @@ pub struct Sisyphus {
     file_list: Vec<PathBuf>,
     // Ziper
     ziper: Ziper,
+    // Http client
+    http: Option<Http<'a>>,
 }
 
-impl Sisyphus {
+impl<'a> Sisyphus<'a> {
     /// Sisyphus builder.
     ///
     /// Create new Sisyphus struct.
@@ -82,12 +85,19 @@ impl Sisyphus {
             p
         };
 
+        let http = if mode == Mode::Upload {
+            Some(Http::new(None))
+        } else {
+            None
+        };
+
         let s = Self {
             directory,
             output,
             mode,
             file_list,
             ziper: Ziper::new(),
+            http,
         };
         Ok(s)
     }
