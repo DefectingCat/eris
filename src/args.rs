@@ -7,6 +7,7 @@ pub enum Mode {
     #[default]
     Format,
     Compress,
+    Upload,
 }
 
 /// HTML Template processer.
@@ -19,7 +20,8 @@ pub struct Args {
     /// Target directory
     #[arg(short, long, default_value = ".")]
     pub directory: PathBuf,
-    /// Compress output directory. default 'directory'/output
+    /// Compress output directory. default [directory]/output.
+    /// Specify target directory when use upload mode
     #[arg(short, long)]
     pub output: Option<PathBuf>,
 }

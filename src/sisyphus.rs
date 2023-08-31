@@ -258,6 +258,7 @@ impl Sisyphus {
                     .map(|path| self.compress_process(path))
                     .collect::<Result<Vec<_>>>()?;
             }
+            Mode::Upload => todo!(),
         }
         Ok(())
     }

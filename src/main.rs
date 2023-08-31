@@ -1,6 +1,6 @@
 use anyhow::Result;
-use clap::Parser;
 
+use clap::Parser;
 use sisyphus::Sisyphus;
 
 use crate::args::Args;
