@@ -70,8 +70,9 @@ impl<'a> Http<'a> {
         );
 
         let form = multipart::Form::new()
-            .text("name", upload_name.clone())
+            .text("name", filename.to_string())
             .text("width", String::from(width))
+            .text("alias", upload_name.clone())
             .text("height", String::from(height))
             .file("file", path)?;
 
