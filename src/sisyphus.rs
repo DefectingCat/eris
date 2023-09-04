@@ -5,7 +5,7 @@ use html5ever::{
     LocalName, Namespace, QualName,
 };
 
-use scraper::{Html, Node, Selector};
+use scraper::{ElementRef, Html, Node, Selector};
 use std::{
     fs::{self, DirEntry, File},
     io::{Read, Write},
@@ -154,6 +154,30 @@ impl<'a> Sisyphus<'a> {
         Ok(())
     }
 
+    // Copy image that it's has same name with target folder
+    fn image_process(&self, image_path: &Path, folder_prefix: &str) -> Result<()> {
+        println!("Found thumb {:?}", &image_path);
+        let mut target_path = PathBuf::from(&folder_prefix);
+        target_path.push("thumb.jpg");
+        fs::copy(image_path, &target_path)?;
+        println!("Copy thumb to {:?} done", &target_path);
+        Ok(())
+    }
+
+    fn style_process(&self, img: &ElementRef, html: &mut String) {
+        let old_img = img.value();
+        let h = format!("{:?}", old_img);
+        println!("Processing img tag {}", h);
+
+        let mut new_img = old_img.clone();
+        add_attr(&mut new_img, "data-template", "img");
+        add_attr(&mut new_img, "data-title", "图片");
+
+        let new_h = format!("{:?}", new_img);
+        println!("Processed img tag {}", new_h);
+        *html = html.replace(&h, &new_h);
+    }
+
     /// Unzip all target zip files, and format target templates.
     fn format_process(&self, file: &Path) -> Result<()> {
         self.unzip(file)?;
@@ -161,6 +185,18 @@ impl<'a> Sisyphus<'a> {
         let file = file.to_string_lossy();
         // remove `.zip` str
         let folder_prefix = &file[..file.len() - 4];
+
+        let image_path = {
+            let mut p = PathBuf::from(&folder_prefix);
+            p.set_extension("jpg");
+            p
+        };
+        if image_path.exists() {
+            self.image_process(&image_path, folder_prefix)
+                .with_context(|| format!("Copy thumb image {:?} failed", &image_path))?;
+        }
+
+        // create index html
         let index_path = {
             let mut p = PathBuf::from(&folder_prefix);
             p.push("index.html");
@@ -188,17 +224,7 @@ impl<'a> Sisyphus<'a> {
         let image_selector =
             Selector::parse("img").map_err(|err| anyhow!("cannot create selector {}", err))?;
         for img in body.select(&image_selector) {
-            let old_img = img.value();
-            let h = format!("{:?}", old_img);
-            println!("Processing img tag {}", h);
-
-            let mut new_img = old_img.clone();
-            add_attr(&mut new_img, "data-template", "img");
-            add_attr(&mut new_img, "data-title", "图片");
-
-            let new_h = format!("{:?}", new_img);
-            println!("Processed img tag {}", new_h);
-            html = html.replace(&h, &new_h);
+            self.style_process(&img, &mut html);
         }
 
         // add data attributes to texts
@@ -215,28 +241,16 @@ impl<'a> Sisyphus<'a> {
         let style_file = fs::read_to_string(style_path)?;
         let styles = format!("<style>\n{}\n{}\n</style>", style_file, RESET_CSS);
         let html = format!("{}\n{}", styles, html);
-        // index_file
-        //     .set_len(0)
-        //     .with_context(|| anyhow!("cannot clean {:?} file", &index_file))?;
-        // rewrite body tag to html file
-        // index_file
-        //     .write_all(html.as_bytes())
-        //     .with_context(|| anyhow!("cannot write to file {:?}", &index_file))?;
 
         // create new template.html
         let mut new_name = PathBuf::from(&index_path);
         new_name.set_file_name("template.html");
-        // if new_name.exists() {
-        //     fs::remove_file(&new_name)?;
-        // }
         let mut template = File::options().write(true).create(true).open(&new_name)?;
         template
             .write_all(html.as_bytes())
             .with_context(|| anyhow!("cannot write to file {:?}", &template))?;
         // delete index.html
         fs::remove_file(&index_path)?;
-        // fs::rename(&index_path, &new_name)
-        //     .with_context(|| anyhow!("cannot rename {:?} to {:?}", index_path, new_name))?;
         println!("{} process done\n", file);
         Ok(())
     }
