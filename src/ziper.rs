@@ -8,6 +8,8 @@ use anyhow::Result;
 use walkdir::DirEntry;
 use zip::{write::FileOptions, ZipArchive};
 
+use crate::consts::{SKIP_FILES, SKIP_FOLDERS};
+
 #[derive(Debug)]
 pub struct Ziper {}
 
@@ -41,6 +43,16 @@ impl Ziper {
             // Write file or directory explicitly
             // Some unzip tools unzip files with directory paths correctly, some do not!
             if path.is_file() {
+                let filename = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default();
+                if SKIP_FILES.contains(&filename) {
+                    println!("Skipping file {path:?}");
+                    continue;
+                }
+
                 println!("Adding file {path:?} as {name:?} ...");
                 zip.start_file(name.to_string_lossy(), options)?;
 
@@ -49,6 +61,10 @@ impl Ziper {
                 zip.write_all(&buffer)?;
                 buffer.clear();
             } else if !name.as_os_str().is_empty() {
+                if SKIP_FOLDERS.contains(&name.to_str().unwrap_or_default()) {
+                    println!("Skipping dir {name:?}");
+                    continue;
+                }
                 // Only if not root! Avoids path spec / warning
                 // and mapname conversion failed error on unzip
                 println!("Adding dir {path:?} as {name:?} ...");

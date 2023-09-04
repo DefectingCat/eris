@@ -5,3 +5,7 @@ pub static RESET_CSS: &str = r#"html,body,div,span,applet,object,iframe,h1,h2,h3
 pub const METHOD_STORED: Option<zip::CompressionMethod> = Some(zip::CompressionMethod::Stored);
 
 pub static BASE_URL: &str = "http://183.162.254.169:8086/";
+
+// Skip files when zip;
+pub const SKIP_FILES: [&str; 3] = ["globals.css", "style.css", ".DS_Store"];
+pub const SKIP_FOLDERS: [&str; 1] = ["static"];
