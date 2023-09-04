@@ -184,7 +184,9 @@ impl<'a> Sisyphus<'a> {
 
         let file = file.to_string_lossy();
         // remove `.zip` str
-        let folder_prefix = &file[..file.len() - 4];
+        let folder_prefix = &file
+            .strip_suffix(".zip")
+            .ok_or(anyhow!("strip filename failed"))?;
 
         let image_path = {
             let mut p = PathBuf::from(&folder_prefix);

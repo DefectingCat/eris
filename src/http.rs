@@ -51,12 +51,9 @@ impl<'a> Http<'a> {
             String::from(filename.clone())
         };
 
+        let lower_name = up_name.last().ok_or(anyhow!(""))?.to_lowercase();
         let (width, height) = if upload_name.len() > 2 {
-            let size = up_name
-                .last()
-                .ok_or(anyhow!(""))?
-                .split('X')
-                .collect::<Vec<_>>();
+            let size = lower_name.split('x').collect::<Vec<_>>();
 
             if size.len() != 2 {
                 ("", "")
