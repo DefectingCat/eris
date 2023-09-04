@@ -18,8 +18,10 @@ impl Ziper {
 
     pub fn zip_dir<T>(
         &self,
-        it: &mut dyn Iterator<Item = DirEntry>,
+        // Walkdir iter
+        iter: &mut dyn Iterator<Item = DirEntry>,
         prefix: &Path,
+        // The file writer
         writer: T,
         method: zip::CompressionMethod,
     ) -> Result<()>
@@ -32,7 +34,7 @@ impl Ziper {
             .unix_permissions(0o755);
 
         let mut buffer = Vec::new();
-        for entry in it {
+        for entry in iter {
             let path = entry.path();
             let name = path.strip_prefix(prefix)?;
 
@@ -40,10 +42,9 @@ impl Ziper {
             // Some unzip tools unzip files with directory paths correctly, some do not!
             if path.is_file() {
                 println!("Adding file {path:?} as {name:?} ...");
-                #[allow(deprecated)]
-                zip.start_file_from_path(name, options)?;
-                let mut f = File::open(path)?;
+                zip.start_file(name.to_string_lossy(), options)?;
 
+                let mut f = File::open(path)?;
                 f.read_to_end(&mut buffer)?;
                 zip.write_all(&buffer)?;
                 buffer.clear();
@@ -51,8 +52,7 @@ impl Ziper {
                 // Only if not root! Avoids path spec / warning
                 // and mapname conversion failed error on unzip
                 println!("Adding dir {path:?} as {name:?} ...");
-                #[allow(deprecated)]
-                zip.add_directory_from_path(name, options)?;
+                zip.add_directory(name.to_string_lossy(), options)?;
             }
         }
         zip.finish()?;

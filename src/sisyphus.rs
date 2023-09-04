@@ -247,7 +247,8 @@ impl<'a> Sisyphus<'a> {
         let path_name = path
             .iter()
             .last()
-            .ok_or(anyhow!("cannot get folder filename"))?
+            .ok_or(anyhow!("cannot get folder filename"))
+            .with_context(|| anyhow!("{:?}", path))?
             .to_string_lossy();
         let filename = format!("{}.zip", &path_name);
         out_path.push(&filename);
@@ -263,11 +264,10 @@ impl<'a> Sisyphus<'a> {
         let mut src_path = PathBuf::from(&self.directory);
         src_path.push(&*path_name);
         let walkdir = WalkDir::new(&src_path);
-        let it = walkdir.into_iter();
 
         let ziper = &self.ziper;
         ziper.zip_dir(
-            &mut it.filter_map(|e| e.ok()),
+            &mut walkdir.into_iter().filter_map(|e| e.ok()),
             &src_path,
             file,
             METHOD_STORED.ok_or(anyhow!("cannot use stored compression method"))?,
