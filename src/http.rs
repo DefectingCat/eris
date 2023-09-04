@@ -43,12 +43,12 @@ impl<'a> Http<'a> {
         let upload_name = if let Some(name) = name_suffix.as_ref() {
             if up_name.len() < 3 {
                 eprintln!("Wraning: filename is illegal {}", &filename);
-                String::from(filename.clone())
+                filename.to_string()
             } else {
                 format!("{}_{}", &name, &up_name[1])
             }
         } else {
-            String::from(filename.clone())
+            filename.to_string()
         };
 
         let lower_name = up_name.last().ok_or(anyhow!(""))?.to_lowercase();
